@@ -1,10 +1,10 @@
 # TelemetryFlow Uptime -- System Architecture
 
-> **Version:** 1.4.0
-> **API Prefix:** `/api/v2`
-> **License:** Proprietary -- Telemetri Data Indonesia
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
 
-TelemetryFlow Uptime (TFO-Uptime) is a full-stack monorepo providing Uptime
+**TelemetryFlow Uptime (TelemetryFlow-Uptime)** is a full-stack monorepo providing Uptime
 Monitoring, Status Pages, Identity and Access Management (IAM), Alerting, and
 Audit management. The backend follows Domain-Driven Design with CQRS, and the
 frontend is a Vue 3 SPA served through Nginx.
@@ -67,7 +67,6 @@ telemetryflow-uptime/
 │   │   │   └── typeorm.config.ts
 │   │   ├── health/                 # Health-check module
 │   │   ├── logger/                 # Winston-based structured logging
-│   │   ├── otel/                   # OpenTelemetry tracing setup
 │   │   ├── modules/                # Domain modules (15 modules)
 │   │   │   ├── alerting/
 │   │   │   ├── api-keys/
@@ -77,13 +76,14 @@ telemetryflow-uptime/
 │   │   │   ├── data-masking/
 │   │   │   ├── iam/
 │   │   │   ├── llm/
+│   │   │   ├── monitoring/
+│   │   │   │   ├── uptime/         # Uptime Monitoring (HTTP/TCP/Ping)
+│   │   │   │   └── status-page/    # Status Pages & Incidents
 │   │   │   ├── notification/
 │   │   │   ├── query/
 │   │   │   ├── retention/
 │   │   │   ├── sso/
-│   │   │   ├── status-page/
-│   │   │   ├── tenancy/
-│   │   │   └── uptime/
+│   │   │   └── tenancy/
 │   │   └── shared/                 # Cross-cutting infrastructure
 │   │       ├── cache/              # Redis cache module
 │   │       ├── clickhouse/         # ClickHouse client module
@@ -136,9 +136,7 @@ telemetryflow-uptime/
 │   │   └── conf.d/
 │   │       └── default.conf
 │   ├── postgresql/
-│   ├── clickhouse/
-│   ├── prometheus/
-│   └── tfo-agent/
+│   └── clickhouse/
 ├── scripts/                        # Operational scripts
 │   ├── bootstrap.sh
 │   ├── db-cleanup.sh
@@ -435,14 +433,14 @@ sequenceDiagram
 
 ### Key Infrastructure Components
 
-| Component                         | File                                                                   | Purpose                                          |
-| --------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
-| `UptimeCheckerScheduler`          | `uptime/infrastructure/schedulers/UptimeChecker.scheduler.ts`          | Cron-based scheduler for all active monitors     |
-| `HttpChecker`                     | `uptime/infrastructure/checkers/HttpChecker.ts`                        | Performs HTTP health check requests              |
-| `UptimeCheckRepository`           | `uptime/infrastructure/persistence/UptimeCheckRepository.ts`           | PostgreSQL persistence for check results         |
-| `UptimeCheckClickHouseRepository` | `uptime/infrastructure/persistence/UptimeCheckClickHouseRepository.ts` | ClickHouse persistence for time-series analytics |
-| `MonitorRepository`               | `uptime/infrastructure/persistence/MonitorRepository.ts`               | PostgreSQL persistence for monitor configuration |
-| `MonitorGroupRepository`          | `uptime/infrastructure/persistence/MonitorGroupRepository.ts`          | PostgreSQL persistence for monitor groups        |
+| Component                         | File                                                                             | Purpose                                          |
+| --------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `UptimeCheckerScheduler`          | `monitoring/uptime/infrastructure/schedulers/UptimeChecker.scheduler.ts`          | Cron-based scheduler for all active monitors     |
+| `HttpChecker`                     | `monitoring/uptime/infrastructure/checkers/HttpChecker.ts`                        | Performs HTTP health check requests              |
+| `UptimeCheckRepository`           | `monitoring/uptime/infrastructure/persistence/UptimeCheckRepository.ts`           | PostgreSQL persistence for check results         |
+| `UptimeCheckClickHouseRepository` | `monitoring/uptime/infrastructure/persistence/UptimeCheckClickHouseRepository.ts` | ClickHouse persistence for time-series analytics |
+| `MonitorRepository`               | `monitoring/uptime/infrastructure/persistence/MonitorRepository.ts`               | PostgreSQL persistence for monitor configuration |
+| `MonitorGroupRepository`          | `monitoring/uptime/infrastructure/persistence/MonitorGroupRepository.ts`          | PostgreSQL persistence for monitor groups        |
 
 ### Domain Aggregates
 
@@ -794,33 +792,15 @@ flowchart TB
 Every HTTP request passes through the following NestJS middleware and
 interceptor pipeline before reaching a controller:
 
-```
-Incoming Request
-  |
-  v
-RequestContextMiddleware        -- Attaches correlation ID, request metadata
-  |
-  v
-ValidationPipe (global)         -- Transforms + validates DTOs
-  |
-  v
-JwtAuthGuard                    -- Validates JWT or API key
-  |
-  v
-PermissionsGuard                -- Checks role-based permissions
-  |
-  v
-Controller                      -- Handles request, dispatches CQRS
-  |
-  v
-AuditInterceptor (global)       -- Logs action to audit trail
-  |
-  v
-HttpLoggingInterceptor (global)  -- Structured request/response logging
-  |
-  v
-HttpExceptionFilter (global)     -- Normalises error responses
-  |
-  v
-Outgoing Response
+```mermaid
+flowchart TB
+    A["Incoming Request"] --> B["RequestContextMiddleware<br/><i>Attaches correlation ID, request metadata</i>"]
+    B --> C["ValidationPipe (global)<br/><i>Transforms + validates DTOs</i>"]
+    C --> D["JwtAuthGuard<br/><i>Validates JWT or API key</i>"]
+    D --> E["PermissionsGuard<br/><i>Checks role-based permissions</i>"]
+    E --> F["Controller<br/><i>Handles request, dispatches CQRS</i>"]
+    F --> G["AuditInterceptor (global)<br/><i>Logs action to audit trail</i>"]
+    G --> H["HttpLoggingInterceptor (global)<br/><i>Structured request/response logging</i>"]
+    H --> I["HttpExceptionFilter (global)<br/><i>Normalises error responses</i>"]
+    I --> J["Outgoing Response"]
 ```

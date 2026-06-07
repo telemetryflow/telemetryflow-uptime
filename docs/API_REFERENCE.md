@@ -1,6 +1,8 @@
-# TFO-Uptime API Reference
+# TelemetryFlow-Uptime API Reference
 
-Version 1.4.0 | Base URL: `/api/v2`
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
 
 ---
 

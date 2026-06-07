@@ -1,5 +1,11 @@
 # Status Page Module
 
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
+
+---
+
 ## 1. Module Overview
 
 The Status Page module provides public-facing service health pages with full incident

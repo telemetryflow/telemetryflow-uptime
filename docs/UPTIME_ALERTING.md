@@ -1,6 +1,9 @@
 # Uptime Alerting & Notification
 
-> **Version:** 1.4.0 | **Module Path:** `backend/src/modules/monitoring/uptime/` + `backend/src/modules/alerting/`
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **Module Path:** `backend/src/modules/monitoring/uptime/` + `backend/src/modules/alerting/`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
 
 TelemetryFlow Uptime provides a two-layer alerting system that detects monitor status changes in real-time and dispatches notifications through 9 configurable channels.
 

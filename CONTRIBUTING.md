@@ -91,7 +91,7 @@ cp .env.example .env
 pnpm generate:secrets
 
 # Start infrastructure
-docker-compose --profile core up -d
+docker-compose --profile uptime up -d
 
 # Run migrations and seeds
 pnpm db:migrate:seed
@@ -146,12 +146,12 @@ telemetryflow-uptime/
 │       ├── app.module.ts        # Root NestJS module
 │       ├── shared/              # Shared utilities (queue, domain primitives)
 │       ├── logger/              # Winston logging module
-│       ├── otel/                # OpenTelemetry configuration
 │       ├── health/              # Health check endpoint
 │       ├── database/            # Database configuration
 │       └── modules/             # Business modules
-│           ├── uptime/             # Uptime Monitoring
-│           ├── status-page/        # Status Pages & Incidents
+│           ├── monitoring/
+│           │   ├── uptime/         # Uptime Monitoring
+│           │   └── status-page/    # Status Pages & Incidents
 │           ├── iam/             # Identity & Access Management
 │           ├── auth/            # Authentication
 │           ├── sso/             # Single Sign-On

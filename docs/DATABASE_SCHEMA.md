@@ -1,12 +1,14 @@
-# TFO-Uptime Database Schema
+# TelemetryFlow-Uptime Database Schema
 
-Version 1.4.0
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
 
 ---
 
 ## Overview
 
-The TFO-Uptime platform uses a dual-database architecture:
+The TelemetryFlow-Uptime platform uses a dual-database architecture:
 
 - **PostgreSQL 16** -- Transactional data (monitors, status pages, IAM entities)
 - **ClickHouse** -- Time-series data (uptime checks, audit logs, analytics)

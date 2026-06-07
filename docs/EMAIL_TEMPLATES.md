@@ -1,6 +1,12 @@
 # Email Notification Template Customization
 
-> **Version:** 1.4.0 | **Template Engine:** Handlebars | **Path:** `backend/src/modules/notification/infrastructure/templates/`
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **Template Engine:** Handlebars
+- **Path:** `backend/src/modules/notification/infrastructure/templates/`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
+
+---
 
 All email notifications use Handlebars (`.hbs`) templates rendered server-side by `EmailService`. This guide covers the 3 uptime-specific templates, available variables, dark mode support, and how to create custom templates.
 

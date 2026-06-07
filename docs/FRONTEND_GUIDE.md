@@ -1,6 +1,8 @@
-# TFO-Uptime Frontend Architecture Guide
+# TelemetryFlow-Uptime Frontend Architecture Guide
 
-Version 1.4.0
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
 
 ---
 

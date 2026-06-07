@@ -1,6 +1,8 @@
-# TFO-Uptime Security Architecture
+# TelemetryFlow-Uptime Security Architecture
 
-Version 1.4.0
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
 
 ---
 

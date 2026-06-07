@@ -1,5 +1,11 @@
 # Uptime Module -- Deep Dive
 
+- **Version:** 1.4.0
+- **API Prefix:** `/api/v2`
+- **License:** Apache-v2.0 -- Telemetri Data Indonesia
+
+---
+
 ## 1. Module Overview
 
 The Uptime module provides HTTP/HTTPS/TCP/PING/DNS monitoring with configurable intervals, response time tracking, and alerting integration. It follows Domain-Driven Design with CQRS, uses PostgreSQL for durable state and ClickHouse for high-cardinality time-series analytics, and exposes a REST API protected by JWT authentication and role-based permissions.
