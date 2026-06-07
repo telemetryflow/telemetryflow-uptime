@@ -1,0 +1,233 @@
+#================================================================================================
+# TelemetryFlow Uptime - Docker Compose Configuration
+# Full Stack: PostgreSQL + ClickHouse + Redis + NATS + Backend + Frontend
+#
+# PROFILES:
+# - uptime: Essential services (postgres, clickhouse, redis, nats, backend, frontend)
+# - tools: Management tools (portainer)
+# - all: All services combined
+#
+# USAGE:
+# docker-compose --profile uptime up -d    # Uptime services only
+# docker-compose --profile all up -d       # All services
+#================================================================================================
+
+networks:
+  telemetryflow_uptime_net:
+    name: telemetryflow_uptime_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.145.0.0/16
+
+services:
+
+  #----------------------------------------------------------------------------------------------
+  # POSTGRESQL
+  #----------------------------------------------------------------------------------------------
+  postgres:
+    profiles: ["uptime", "all"]
+    platform: linux/amd64
+    image: postgres:${POSTGRES_VERSION:-16-alpine}
+    container_name: ${CONTAINER_POSTGRES:-telemetryflow_uptime_postgres}
+    restart: unless-stopped
+    ports:
+      - "${PORT_POSTGRES:-5432}:5432"
+    environment:
+      - TZ=${TZ:-UTC}
+      - POSTGRES_USER=${POSTGRES_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+      - POSTGRES_DB=${POSTGRES_DB:-telemetryflow_db}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ${VOLUMES_BASE_PATH:-/opt/data/docker/telemetryflow-uptime}/postgresql:/var/lib/postgresql/data
+      - ./config/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    networks:
+      telemetryflow_uptime_net:
+        ipv4_address: ${CONTAINER_IP_POSTGRES:-172.145.145.20}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME:-postgres} -d ${POSTGRES_DB:-telemetryflow_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  #----------------------------------------------------------------------------------------------
+  # CLICKHOUSE - Time-Series & Analytics Storage (Metrics, Logs, Traces, Audit)
+  #----------------------------------------------------------------------------------------------
+  clickhouse:
+    profiles: ["uptime", "all"]
+    platform: linux/amd64
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}
+    container_name: ${CONTAINER_CLICKHOUSE:-telemetryflow_uptime_clickhouse}
+    restart: unless-stopped
+    ports:
+      - "${PORT_CLICKHOUSE_HTTP:-8123}:8123"    # HTTP
+      - "${PORT_CLICKHOUSE_NATIVE:-9000}:9000"  # Native
+      - "${PORT_CLICKHOUSE_METRICS:-9363}:9363" # Prometheus metrics
+    environment:
+      - TZ=${TZ:-UTC}
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-telemetryflow_db}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+    volumes:
+      - ${DATA_CLICKHOUSE:-${VOLUMES_BASE_PATH:-/opt/data/docker/telemetryflow-uptime}/clickhouse}/data:/var/lib/clickhouse
+      - ${DATA_CLICKHOUSE:-${VOLUMES_BASE_PATH:-/opt/data/docker/telemetryflow-uptime}/clickhouse}/logs:/var/log/clickhouse-server
+    # - ./config/clickhouse/config.d:/etc/clickhouse-server/config.d
+    networks:
+      telemetryflow_uptime_net:
+        ipv4_address: ${CONTAINER_IP_CLICKHOUSE:-172.151.151.40}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  #----------------------------------------------------------------------------------------------
+  # REDIS - Cache, Sessions, BullMQ Queues
+  #----------------------------------------------------------------------------------------------
+  redis:
+    profiles: ["uptime", "all"]
+    platform: linux/amd64
+    image: redis:7-alpine
+    container_name: ${CONTAINER_REDIS:-telemetryflow_uptime_redis}
+    restart: unless-stopped
+    ports:
+      - "${PORT_REDIS:-6379}:6379"
+    command: >
+      redis-server
+      --maxmemory ${REDIS_MAX_MEMORY:-512mb}
+      --maxmemory-policy noeviction
+      --save 60 1000
+      --appendonly yes
+    volumes:
+      - ${VOLUMES_BASE_PATH:-/opt/data/docker/telemetryflow-uptime}/redis:/data
+    networks:
+      telemetryflow_uptime_net:
+        ipv4_address: ${CONTAINER_IP_REDIS:-172.145.145.30}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  #----------------------------------------------------------------------------------------------
+  # NATS - Cross-Module Domain Event Messaging
+  #   JetStream enabled for durable message delivery
+  #----------------------------------------------------------------------------------------------
+  nats:
+    profiles: ["uptime", "all"]
+    platform: linux/amd64
+    image: nats:${NATS_VERSION:-2-alpine}
+    container_name: ${CONTAINER_NATS:-telemetryflow_uptime_nats}
+    restart: unless-stopped
+    ports:
+      - "${PORT_NATS_CLIENT:-4222}:4222"   # Client connections
+      - "${PORT_NATS_MONITOR:-8222}:8222"  # HTTP monitoring
+    command: ["--js", "--sd", "/data", "-m", "8222"]
+    volumes:
+      - ${DATA_NATS:-${VOLUMES_BASE_PATH:-/opt/data/docker/telemetryflow-uptime}/nats}:/data
+    networks:
+      telemetryflow_uptime_net:
+        ipv4_address: ${CONTAINER_IP_NATS:-172.145.145.55}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  #----------------------------------------------------------------------------------------------
+  # BACKEND - NestJS API
+  #----------------------------------------------------------------------------------------------
+  backend:
+    profiles: ["uptime"]
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: ${CONTAINER_BACKEND:-telemetryflow_uptime_backend}
+    restart: unless-stopped
+    ports:
+      - "${PORT_BACKEND:-3000}:3000"
+    environment:
+      - TZ=${TZ:-UTC}
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+      - POSTGRES_PORT=5432
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+      - POSTGRES_DB=${POSTGRES_DB:-telemetryflow_db}
+      - CLICKHOUSE_HOST=${CLICKHOUSE_HOST:-clickhouse}
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-telemetryflow_db}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_CACHE_DB=0
+      - REDIS_QUEUE_DB=1
+      - NATS_URL=nats://nats:4222
+      - NATS_CLUSTER_ID=${NATS_CLUSTER_ID:-telemetryflow-cluster}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - MFA_ENCRYPTION_KEY=${MFA_ENCRYPTION_KEY}
+      - LLM_ENCRYPTION_KEY=${LLM_ENCRYPTION_KEY}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - LOGGER_TYPE=${LOGGER_TYPE:-winston}
+      - SMTP_ENABLED=${SMTP_ENABLED:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      telemetryflow_uptime_net:
+        ipv4_address: ${CONTAINER_IP_BACKEND:-172.145.145.10}
+
+  #----------------------------------------------------------------------------------------------
+  # FRONTEND - Vue 3 SPA via Nginx
+  #----------------------------------------------------------------------------------------------
+  frontend:
+    profiles: ["uptime"]
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ${CONTAINER_FRONTEND:-telemetryflow_uptime_frontend}
+    restart: unless-stopped
+    ports:
+      - "${PORT_FRONTEND:-8080}:80"
+    depends_on:
+      - backend
+    networks:
+      telemetryflow_uptime_net:
+        ipv4_address: ${CONTAINER_IP_FRONTEND:-172.145.145.80}
+
+  #----------------------------------------------------------------------------------------------
+  # PORTAINER - Docker Management (optional)
+  #----------------------------------------------------------------------------------------------
+  portainer:
+    profiles: ["tools", "all"]
+    platform: linux/amd64
+    image: portainer/portainer-ce:${PORTAINER_VERSION:-latest}
+    container_name: ${CONTAINER_PORTAINER:-telemetryflow_uptime_portainer}
+    restart: unless-stopped
+    ports:
+      - "${PORT_PORTAINER:-9100}:9000"
+      - "${PORT_PORTAINER_HTTPS:-9443}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${VOLUMES_BASE_PATH:-/opt/data/docker/telemetryflow-uptime}/portainer:/data
+    networks:
+      telemetryflow_uptime_net:
+        ipv4_address: ${CONTAINER_IP_PORTAINER:-172.145.145.5}

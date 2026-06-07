@@ -1,0 +1,17 @@
+{
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "backend/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "tsConfigPath": "backend/tsconfig.json",
+    "assets": [
+      { "include": "**/*.hbs", "watchAssets": true }
+    ]
+  },
+  "exclude": [
+    "scripts/**/*",
+    "**/*.spec.ts",
+    "**/*.e2e.spec.ts",
+    "**/__tests__/**/*"
+  ]
+}
