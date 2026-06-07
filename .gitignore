@@ -64,3 +64,4 @@ build/
 
 # Legacy src (moved to backend/src)
 /src/
+.DS_Store
