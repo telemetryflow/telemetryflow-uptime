@@ -13,6 +13,7 @@
  */
 import { ref, computed, onMounted } from "vue";
 import { iamClient } from "@/api/iam";
+import { config } from "@/config";
 
 export interface GraphShareState {
   graphId: string;
@@ -35,7 +36,7 @@ export function useGraphShare(
 ) {
   const enabled = options?.enabled ?? true;
 
-  if (!enabled) {
+  if (!enabled || config.uptimeOnly) {
     const noop = async () => {};
     return {
       isShared: ref(false),

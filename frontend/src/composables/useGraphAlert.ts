@@ -16,6 +16,7 @@ import { ref, computed, onMounted } from "vue";
 import { alertingApi } from "@/api/alerting";
 import type { LogAlertRule } from "@/types";
 import type { GraphDefaultQuery } from "@/constants/graphs/types";
+import { config } from "@/config";
 
 export interface GraphAlertChannel {
   id: string;
@@ -29,6 +30,29 @@ export function useGraphAlert(
   graphTitle: string,
   defaultQueries: GraphDefaultQuery[] = [],
 ) {
+  if (config.uptimeOnly) {
+    const noop = async () => {};
+    return {
+      rule: ref(null),
+      alertEnabled: computed(() => false),
+      hasRule: computed(() => false),
+      ruleId: computed(() => null),
+      primaryQuery: computed(
+        () => defaultQueries.find((q) => q.dialect !== "none") ?? defaultQueries[0] ?? null,
+      ),
+      loadingRule: ref(false),
+      savingAlert: ref(false),
+      alertError: ref<string | null>(null),
+      channels: ref<GraphAlertChannel[]>([]),
+      loadingChannels: ref(false),
+      selectedChannelIds: ref<string[]>([]),
+      toggleAlert: noop as () => Promise<boolean>,
+      applyChannels: noop as () => Promise<boolean>,
+      fetchRule: noop,
+      fetchChannels: noop,
+    } as any;
+  }
+
   // ─── State ─────────────────────────────────────────────────────────────────
 
   const rule = ref<LogAlertRule | null>(null);

@@ -19,6 +19,7 @@ import type { WidgetType, WidgetQuery } from "@/types/dashboard";
 import type { SignalSource } from "@/utils/query-templates";
 import type { ChartSeries } from "@/utils/telemetry";
 import { useAppStore } from "@/store";
+import { config } from "@/config";
 
 // ─── Signal Type Mapping ────────────────────────────────────────────────────────
 
@@ -96,7 +97,7 @@ export function useGraphFromRegistry(
     );
   }
 
-  const { autoRun = true } = options;
+  const { autoRun = !config.uptimeOnly } = options;
 
   // Convert defaultQueries → WidgetQuery[]
   const signalSource = SIGNAL_TO_SOURCE[definition.signalType];

@@ -46,6 +46,7 @@ import type { ChartDisplayType } from "./ChartTypeToggle.vue";
 import { QueryEditorPanel } from "./query-editor";
 import { useGraphFromRegistry } from "@/composables/useGraphFromRegistry";
 import { useAppStore } from "@/store";
+import { config } from "@/config";
 import type { SignalSource } from "@/utils/query-templates";
 import type { ChartSeries } from "@/utils/telemetry";
 import type { TraceScatterPoint } from "@/types";
@@ -146,7 +147,7 @@ const {
   refresh,
   panel,
 } = useGraphFromRegistry(props.graphId, {
-  autoRun: !props.noAutoQuery,
+  autoRun: !props.noAutoQuery && !config.uptimeOnly,
 });
 
 /** Unified series: override takes precedence when it has data; otherwise use registry query pipeline */
